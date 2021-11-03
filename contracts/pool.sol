@@ -594,7 +594,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
     function redeem(uint _nftID, int tok_amount, address _receiver) external onlyCore returns(int _amount) {
         accrueInterest();
         
-        pM storage _positionMt = positionData[1];
+        pM storage _positionMt = positionData[_nftID];
         
         if(tok_amount < 0){
             require(_positionMt.token0lendShare >= uint(-tok_amount), "Balance Exceeds Requested");
@@ -643,7 +643,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
     function redeemUnderlying(uint _nftID, int _amount, address _receiver) external onlyCore returns(int rtAmount) {
         accrueInterest();
         
-        pM storage _positionMt = positionData[1];
+        pM storage _positionMt = positionData[_nftID];
         
         if(_amount < 0){
             tM storage _tm0 = token0Data;
@@ -733,7 +733,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
     function repay(uint _nftID, int amount, address _payer) external onlyCore returns(int _rAmount) {
         accrueInterest();
 
-        pM storage _positionMt = positionData[1];
+        pM storage _positionMt = positionData[_nftID];
         
         if(amount < 0){
             tM storage _tm0 = token0Data;
@@ -977,5 +977,4 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
     }
 
 }
-
 
