@@ -610,6 +610,10 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             require(tokenBalance0 >= poolAmount, "Not enough Liquidity");
             
             _burnLPposition(_nftID, uint(-tok_amount), 0);
+
+            // check if _healthFactor > 1
+            (uint256 _healthFactor, ) = userHealthFactor(_nftID);
+            require(_healthFactor > HEALTH_FACTOR_LIQUIDATION_THRESHOLD, "Low HealthFactor");
             
             transferToUser(token0, payable(_receiver), poolAmount);
 
@@ -630,6 +634,10 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             require(tokenBalance1 >= poolAmount, "Not enough Liquidity");
             
             _burnLPposition(_nftID, 0, uint(tok_amount));
+
+            // check if _healthFactor > 1
+            (, uint256 _healthFactor) = userHealthFactor(_nftID);
+            require(_healthFactor > HEALTH_FACTOR_LIQUIDATION_THRESHOLD, "Low HealthFactor");
             
             transferToUser(token1, payable(_receiver), poolAmount);
 
@@ -657,6 +665,10 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             require(tokenBalance0 >= uint(-_amount), "Not enough Liquidity");
             
             _burnLPposition(_nftID, tok_amount0, 0);
+
+            // check if _healthFactor > 1
+            (uint256 _healthFactor, ) = userHealthFactor(_nftID);
+            require(_healthFactor > HEALTH_FACTOR_LIQUIDATION_THRESHOLD, "Low HealthFactor");
             
             transferToUser(token0, payable(_receiver), uint(-_amount));
             
@@ -677,6 +689,10 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             require(tokenBalance1 >= uint(_amount), "Not enough Liquidity");
             
             _burnLPposition(_nftID, 0, tok_amount1);
+
+            // check if _healthFactor > 1
+            (, uint256 _healthFactor) = userHealthFactor(_nftID);
+            require(_healthFactor > HEALTH_FACTOR_LIQUIDATION_THRESHOLD, "Low HealthFactor");
             
             transferToUser(token1, payable(_receiver), uint(_amount));
             
