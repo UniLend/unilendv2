@@ -77,7 +77,6 @@ contract UnilendV2Core is ReentrancyGuard {
     address public governor;
     address public poolMasterAddress;
     address payable public distributorAddress;
-    address public donationAddress;
     address public oracleAddress;
     address public positionsAddress;
     
@@ -125,7 +124,9 @@ contract UnilendV2Core is ReentrancyGuard {
     );
     
     event PoolCreated(address indexed token, address pool, uint);
-    
+    event NewGovernorAddress(address indexed _address);
+    event NewPositionAddress(address indexed _address);
+    event NewOracleAddress(address indexed _address);
     
     
     modifier onlyGovernor {
@@ -321,11 +322,16 @@ contract UnilendV2Core is ReentrancyGuard {
     function setGovernor(address _address) external onlyGovernor {
         require(_address != address(0), "UnilendV2: ZERO ADDRESS");
         governor = _address;
+
+        emit NewGovernorAddress(_address); 
     }
     
     function setPositionAddress(address _address) external onlyGovernor {
         require(_address != address(0), "UnilendV2: ZERO ADDRESS");
+        require(positionsAddress == address(0), "UnilendV2: Position Address Already Set");
         positionsAddress = _address;
+
+        emit NewPositionAddress(_address); 
     }
     
     /**
@@ -335,6 +341,8 @@ contract UnilendV2Core is ReentrancyGuard {
     function setOracleAddress(address _address) external onlyGovernor {
         require(_address != address(0), "UnilendV2: ZERO ADDRESS");
         oracleAddress = _address;
+
+        emit NewOracleAddress(_address); 
     }
     
     /**
@@ -450,7 +458,7 @@ contract UnilendV2Core is ReentrancyGuard {
     * @param _pool the address of the pool
     * @param _amount the amount to be deposited
     **/
-    function lend(address _pool, int _amount) external onlyAmountNotZero(_amount) returns(uint mintedTokens) {
+    function lend(address _pool, int _amount) external onlyAmountNotZero(_amount) nonReentrant returns(uint mintedTokens) {
         (address _token0, address _token1) = getPoolTokens(_pool);
         require(_token0 != address(0), 'UnilendV2: POOL NOT FOUND');
 
