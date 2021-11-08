@@ -138,7 +138,6 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
         uint totalLendShare;
         uint totalBorrowShare;
         uint totalBorrow;
-        uint scale;
     }
     
 
@@ -185,10 +184,6 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
         ltv = _ltv;
         lb = _lb;
         rf = _rf;
-
-        // ltv = 70;
-        // lb = 10;
-        // rf = 10;
     }
     
     
@@ -580,7 +575,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             ntokens1 = calculateShare(_tm1.totalLendShare, _totTokenBalance1.sub(uint(amount)), uint(amount));
             require(ntokens1 > 0, 'Insufficient Liquidity Minted');
 
-            emit Lend(token1, _nftID, uint(amount), ntokens0);
+            emit Lend(token1, _nftID, uint(amount), ntokens1);
         }
         
         _mintLPposition(_nftID, ntokens0, ntokens1);
@@ -717,8 +712,6 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             _mintBposition(_nftID, ntokens0, 0);
             
             _tm0.totalBorrow = _tm0.totalBorrow.add(uint(-amount));
-
-            // totalBorrow = -int(_tm0.totalBorrow);
             
             transferToUser(token0, payable(_recipient), uint(-amount));
 
@@ -734,8 +727,6 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             _mintBposition(_nftID, 0, ntokens1);
             
             _tm1.totalBorrow = _tm1.totalBorrow.add(uint(amount));
-
-            // totalBorrow = int(_tm1.totalBorrow);
             
             transferToUser(token1, payable(_recipient), uint(amount));
 
