@@ -8,6 +8,7 @@ import "./lib/token/ERC721/IERC721.sol";
 import "./lib/token/ERC721/extensions/IERC721Metadata.sol";
 import "./lib/token/ERC721/extensions/IERC721Enumerable.sol";
 import "./lib/token/ERC721/IERC721Receiver.sol";
+// import "./lib/utils/introspection/ERC165.sol";
 import "./lib/utils/introspection/ERC165Storage.sol";
 import "./lib/utils/math/SafeMath.sol";
 import "./lib/utils/Address.sol";
@@ -16,6 +17,8 @@ import "./lib/utils/structs/EnumerableMap.sol";
 import "./lib/utils/Strings.sol";
 
 
+// import "./lib/token/ERC20/utils/SafeERC20.sol";
+// import "./lib/security/ReentrancyGuard.sol";
 import "./lib/utils/Counters.sol";
 
 
@@ -498,7 +501,7 @@ contract UnilendV2Position is ERC721 {
     
     Counters.Counter private _tokenIdTracker;
     
-    address payable public core;
+    address payable immutable public core;
 
     constructor (address payable _core) 
         ERC721('Unilend V2 Positions NFT', 'UFT-V2-POS')
@@ -557,7 +560,7 @@ contract UnilendV2Position is ERC721 {
             _positionData.token1 = pool.token1();
 
             (_positionData.lendBalance0, _positionData.borrowBalance0) = pool.userBalanceOftoken0(_nftID);
-            (_positionData.lendBalance1, _positionData.borrowBalance1) = pool.userBalanceOftoken0(_nftID);
+            (_positionData.lendBalance1, _positionData.borrowBalance1) = pool.userBalanceOftoken1(_nftID);
         }
     }
 }
