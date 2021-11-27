@@ -5,11 +5,6 @@ const UnilendInterestRateModel = artifacts.require("UnilendV2InterestRateModel")
 const UnilendV2oracle = artifacts.require("UnilendV2oracle")
 
 
-// - uniswap v3 oracle
-// - interest rate extra
-// - liquidation price amount get loop
-// - nft transfer function / extra if any
-
 module.exports = async function(deployer) {
   deployer
   .then(async () => {
