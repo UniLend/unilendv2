@@ -46,7 +46,7 @@ interface IUnilendV2Pool {
     function liquidate(uint _price, int amount, address _receiver, uint _toNftID) external returns(uint);
     
     function processFlashLoan(address _receiver, int _amount) external;
-    function init(address _token0, address _token1, uint8 _ltv, uint8 _lb, uint8 _rf) external;
+    function init(address _token0, address _token1, address _interestRate, uint8 _ltv, uint8 _lb, uint8 _rf) external;
     
     function getLTV() external view returns (uint);
     function getLB() external view returns (uint);
@@ -75,6 +75,7 @@ contract UnilendV2Core is ReentrancyGuard {
     using SafeERC20 for IERC20;
     
     address public governor;
+    address public defaultInterestRate;
     address public poolMasterAddress;
     address payable public distributorAddress;
     address public oracleAddress;
@@ -84,6 +85,11 @@ contract UnilendV2Core is ReentrancyGuard {
     
     uint256 private FLASHLOAN_FEE_TOTAL = 5;
     uint256 private FLASHLOAN_FEE_PROTOCOL = 3000;
+
+
+    uint8 private default_LTV = 70;
+    uint8 private default_LB = 10;
+    uint8 private default_RF = 10;
 
 
     
@@ -124,6 +130,8 @@ contract UnilendV2Core is ReentrancyGuard {
     );
     
     event PoolCreated(address indexed token, address pool, uint);
+    event NewDefaultMarketConfig(uint8 _ltv, uint8 _lb, uint8 _rf);
+    event NewDefaultInterestRateAddress(address indexed _address);
     event NewGovernorAddress(address indexed _address);
     event NewPositionAddress(address indexed _address);
     event NewOracleAddress(address indexed _address);
@@ -170,7 +178,7 @@ contract UnilendV2Core is ReentrancyGuard {
     }
 
     function getPoolTokens(address _pool) public view returns (address, address) {
-        poolTokens storage pt = Pool[_pool];
+        poolTokens memory pt = Pool[_pool];
         return (pt.token0, pt.token1);
     }
 
@@ -275,11 +283,21 @@ contract UnilendV2Core is ReentrancyGuard {
 
 
 
+    function setDefaultMarketConfig(uint8 _ltv, uint8 _lb, uint8 _rf) external onlyGovernor {
+        require(_ltv > 0 && _ltv < 99, "UnilendV2: INVALID RANGE");
+        require(_lb > 0 && _lb < (100-_ltv), "UnilendV2: INVALID RANGE");
+        require(_rf > 0 && _rf < 90, "UnilendV2: INVALID RANGE");
+        
+        default_LTV = _ltv;
+        default_LB = _lb;
+        default_RF = _rf;
 
+        emit NewDefaultMarketConfig(_ltv, _lb, _rf); 
+    }
 
     
     function setPoolLTV(address _pool, uint8 _number) external onlyGovernor {
-        require(_number > 0 && _number < 100, "UnilendV2: INVALID RANGE");
+        require(_number > 0 && _number < 99, "UnilendV2: INVALID RANGE");
 
         (address _token0, ) = getPoolTokens(_pool);
         if(_token0 != address(0)){
@@ -288,7 +306,7 @@ contract UnilendV2Core is ReentrancyGuard {
     }
     
     function setPoolLB(address _pool, uint8 _number) external onlyGovernor {
-        require(_number > 0 && _number < 100, "UnilendV2: INVALID RANGE");
+        require(_number > 0 && _number < 99, "UnilendV2: INVALID RANGE");
 
         (address _token0, ) = getPoolTokens(_pool);
         if(_token0 != address(0)){
@@ -297,14 +315,14 @@ contract UnilendV2Core is ReentrancyGuard {
     }
     
     function setPoolRF(address _pool, uint8 _number) external onlyGovernor {
-        require(_number > 0 && _number < 100, "UnilendV2: INVALID RANGE");
+        require(_number > 0 && _number < 99, "UnilendV2: INVALID RANGE");
 
         (address _token0, ) = getPoolTokens(_pool);
         if(_token0 != address(0)){
             IUnilendV2Pool(_pool).setRF(_number);
         }
     }
-    
+
     function setPoolInterestRateAddress(address _pool, address _address) external onlyGovernor {
         require(_address != address(0), "UnilendV2: ZERO ADDRESS");
 
@@ -312,6 +330,13 @@ contract UnilendV2Core is ReentrancyGuard {
         if(_token0 != address(0)){
             IUnilendV2Pool(_pool).setInterestRateAddress(_address);
         }
+    }
+
+    function setDefaultInterestRateAddress(address _address) external onlyGovernor {
+        require(_address != address(0), "UnilendV2: ZERO ADDRESS");
+        defaultInterestRate = _address;
+
+        emit NewDefaultInterestRateAddress(_address); 
     }
 
 
@@ -664,7 +689,7 @@ contract UnilendV2Core is ReentrancyGuard {
         
         address _poolAddress = address(_poolNft);
         
-        IUnilendV2Pool(_poolAddress).init(token0, token1, 70, 10, 10);
+        IUnilendV2Pool(_poolAddress).init(token0, token1, defaultInterestRate, default_LTV, default_LB, default_RF);
         
         poolTokens storage pt = Pool[_poolAddress];
         pt.token0 = token0;
