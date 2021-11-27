@@ -169,6 +169,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
     function init(
         address _token0, 
         address _token1,
+        address _interestRate,
         uint8 _ltv,
         uint8 _lb,
         uint8 _rf
@@ -179,6 +180,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
         
         token0 = _token0;
         token1 = _token1;
+        interestRateAddress = _interestRate;
         core = payable(msg.sender);
         
         ltv = _ltv;
@@ -191,6 +193,11 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
     function getLB() external view returns (uint) { return lb; }
     function getRF() external view returns (uint) { return rf; }
     
+    function checkHealthFactor(uint _nftID) internal view {
+        (uint256 _healthFactor0, uint256 _healthFactor1) = userHealthFactor(_nftID);
+        require(_healthFactor0 > HEALTH_FACTOR_LIQUIDATION_THRESHOLD, "Low HealthFactor0");
+        require(_healthFactor1 > HEALTH_FACTOR_LIQUIDATION_THRESHOLD, "Low HealthFactor1");
+    }
 
     function getInterestRate0(uint _totalBorrow, uint _availableBorrow) public view returns (uint) {
         return IUnilendV2InterestRateModel(interestRateAddress).getCurrentInterestRate(_totalBorrow, _availableBorrow);
@@ -607,8 +614,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             _burnLPposition(_nftID, uint(-tok_amount), 0);
 
             // check if _healthFactor > 1
-            (, uint256 _healthFactor) = userHealthFactor(_nftID);
-            require(_healthFactor > HEALTH_FACTOR_LIQUIDATION_THRESHOLD, "Low HealthFactor");
+            checkHealthFactor(_nftID);
             
             transferToUser(token0, payable(_receiver), poolAmount);
 
@@ -631,8 +637,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             _burnLPposition(_nftID, 0, uint(tok_amount));
 
             // check if _healthFactor > 1
-            (uint256 _healthFactor, ) = userHealthFactor(_nftID);
-            require(_healthFactor > HEALTH_FACTOR_LIQUIDATION_THRESHOLD, "Low HealthFactor");
+            checkHealthFactor(_nftID);
             
             transferToUser(token1, payable(_receiver), poolAmount);
 
@@ -662,8 +667,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             _burnLPposition(_nftID, tok_amount0, 0);
 
             // check if _healthFactor > 1
-            (, uint256 _healthFactor) = userHealthFactor(_nftID);
-            require(_healthFactor > HEALTH_FACTOR_LIQUIDATION_THRESHOLD, "Low HealthFactor");
+            checkHealthFactor(_nftID);
             
             transferToUser(token0, payable(_receiver), uint(-_amount));
             
@@ -686,8 +690,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             _burnLPposition(_nftID, 0, tok_amount1);
 
             // check if _healthFactor > 1
-            (uint256 _healthFactor, ) = userHealthFactor(_nftID);
-            require(_healthFactor > HEALTH_FACTOR_LIQUIDATION_THRESHOLD, "Low HealthFactor");
+            checkHealthFactor(_nftID);
             
             transferToUser(token1, payable(_receiver), uint(_amount));
             
@@ -710,6 +713,9 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             require(ntokens0 > 0, 'Insufficient Borrow0 Liquidity Minted');
             
             _mintBposition(_nftID, ntokens0, 0);
+
+            // check if _healthFactor > 1
+            checkHealthFactor(_nftID);
             
             _tm0.totalBorrow = _tm0.totalBorrow.add(uint(-amount));
             
@@ -725,6 +731,9 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             require(ntokens1 > 0, 'Insufficient Borrow1 Liquidity Minted');
             
             _mintBposition(_nftID, 0, ntokens1);
+
+            // check if _healthFactor > 1
+            checkHealthFactor(_nftID);
             
             _tm1.totalBorrow = _tm1.totalBorrow.add(uint(amount));
             
