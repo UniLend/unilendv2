@@ -5,6 +5,11 @@ const UnilendInterestRateModel = artifacts.require("UnilendV2InterestRateModel")
 const UnilendV2oracle = artifacts.require("UnilendV2oracle")
 
 
+// - uniswap v3 oracle
+// - interest rate extra
+// - liquidation price amount get loop
+// - nft transfer function / extra if any
+
 module.exports = async function(deployer) {
   deployer
   .then(async () => {
@@ -21,8 +26,8 @@ module.exports = async function(deployer) {
 
     // Deploy interestRate contract
     await deployer.deploy(UnilendInterestRateModel)
-    const IUnilendInterestRateModelContract = await UnilendInterestRateModel.deployed()
-    console.log("UnilendV2 InterestRateModel contract deployement done:", IUnilendInterestRateModelContract.address)
+    const V2InterestRateModelContract = await UnilendInterestRateModel.deployed()
+    console.log("UnilendV2 InterestRateModel contract deployement done:", V2InterestRateModelContract.address)
 
 
     // Deploy position contract
@@ -37,6 +42,11 @@ module.exports = async function(deployer) {
     const v2PositionContract = await V2Position.deployed()
     console.log("UnilendV2 position contract deployement done:", v2PositionContract.address)
 
+
+    
+    // set default interest rate address
+    await V2CoreContract.setDefaultInterestRateAddress(V2InterestRateModelContract.address)
+    console.log("Default Interest Rate Address Set...");
 
     // set position address
     await V2CoreContract.setPositionAddress(v2PositionContract.address)
