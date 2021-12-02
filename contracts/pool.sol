@@ -199,11 +199,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
         require(_healthFactor1 > HEALTH_FACTOR_LIQUIDATION_THRESHOLD, "Low Ltv HealthFactor1");
     }
 
-    function getInterestRate0(uint _totalBorrow, uint _availableBorrow) public view returns (uint) {
-        return IUnilendV2InterestRateModel(interestRateAddress).getCurrentInterestRate(_totalBorrow, _availableBorrow);
-    }
-    
-    function getInterestRate1(uint _totalBorrow, uint _availableBorrow) public view returns (uint) {
+    function getInterestRate(uint _totalBorrow, uint _availableBorrow) public view returns (uint) {
         return IUnilendV2InterestRateModel(interestRateAddress).getCurrentInterestRate(_totalBorrow, _availableBorrow);
     }
     
@@ -287,7 +283,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
         
         uint _totalBorrow = _tm0.totalBorrow;
         if(block.number > lastUpdated){
-            uint interestRate0 = getInterestRate0(_tm0.totalBorrow, getAvailableLiquidity0());
+            uint interestRate0 = getInterestRate(_tm0.totalBorrow, getAvailableLiquidity0());
             _totalBorrow = _totalBorrow.add( calculateInterest(_tm0.totalBorrow, interestRate0, (block.number - lastUpdated)) );
         }
         
@@ -308,7 +304,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
         
         uint _totalBorrow = _tm1.totalBorrow;
         if(block.number > lastUpdated){
-            uint interestRate1 = getInterestRate1(_tm1.totalBorrow, getAvailableLiquidity1());
+            uint interestRate1 = getInterestRate(_tm1.totalBorrow, getAvailableLiquidity1());
             _totalBorrow = _totalBorrow.add( calculateInterest(_tm1.totalBorrow, interestRate1, (block.number - lastUpdated)) );
         }
         
@@ -405,8 +401,8 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             tM storage _tm0 = token0Data;
             tM storage _tm1 = token1Data;
 
-            uint interestRate0 = getInterestRate0(_tm0.totalBorrow, getAvailableLiquidity0());
-            uint interestRate1 = getInterestRate1(_tm1.totalBorrow, getAvailableLiquidity1());
+            uint interestRate0 = getInterestRate(_tm0.totalBorrow, getAvailableLiquidity0());
+            uint interestRate1 = getInterestRate(_tm1.totalBorrow, getAvailableLiquidity1());
 
             _tm0.totalBorrow = _tm0.totalBorrow.add( calculateInterest(_tm0.totalBorrow, interestRate0, remainingBlocks) );
             _tm1.totalBorrow = _tm1.totalBorrow.add( calculateInterest(_tm1.totalBorrow, interestRate1, remainingBlocks) );
