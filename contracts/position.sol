@@ -506,6 +506,7 @@ contract UnilendV2Position is ERC721 {
     constructor (address payable _core) 
         ERC721('Unilend V2 Positions NFT', 'UFT-V2-POS')
     {
+        require(_core != address(0), "UnilendV2: ZERO ADDRESS");
         core = _core;
     }
 
