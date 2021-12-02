@@ -193,10 +193,10 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
     function getLB() external view returns (uint) { return lb; }
     function getRF() external view returns (uint) { return rf; }
     
-    function checkHealthFactor(uint _nftID) internal view {
-        (uint256 _healthFactor0, uint256 _healthFactor1) = userHealthFactor(_nftID);
-        require(_healthFactor0 > HEALTH_FACTOR_LIQUIDATION_THRESHOLD, "Low HealthFactor0");
-        require(_healthFactor1 > HEALTH_FACTOR_LIQUIDATION_THRESHOLD, "Low HealthFactor1");
+    function checkHealthFactorLtv(uint _nftID) internal view {
+        (uint256 _healthFactor0, uint256 _healthFactor1) = userHealthFactorLtv(_nftID);
+        require(_healthFactor0 > HEALTH_FACTOR_LIQUIDATION_THRESHOLD, "Low Ltv HealthFactor0");
+        require(_healthFactor1 > HEALTH_FACTOR_LIQUIDATION_THRESHOLD, "Low Ltv HealthFactor1");
     }
 
     function getInterestRate0(uint _totalBorrow, uint _availableBorrow) public view returns (uint) {
@@ -234,6 +234,29 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
     function userLiquidationPrices(uint _nftID) external view returns (uint, uint){
         return (_userLiquidationPrice0[_nftID], _userLiquidationPrice1[_nftID]);
     } 
+
+    function userHealthFactorLtv(uint _nftID) public view returns (uint256 _healthFactor0, uint256 _healthFactor1) {
+        (uint _lendBalance0, uint _borrowBalance0) = userBalanceOftoken0(_nftID);
+        (uint _lendBalance1, uint _borrowBalance1) = userBalanceOftoken1(_nftID);
+        
+        if (_borrowBalance0 == 0){
+            _healthFactor0 = type(uint256).max;
+        } 
+        else {
+            uint collateralBalance = IUnilendV2Core(core).getOraclePrice(token1, token0, _lendBalance1);
+            _healthFactor0 = (collateralBalance.mul(uint(100).sub(ltv)).mul(1e18).div(100)).div(_borrowBalance0);
+        }
+        
+        
+        if (_borrowBalance1 == 0){
+            _healthFactor1 = type(uint256).max;
+        } 
+        else {
+            uint collateralBalance = IUnilendV2Core(core).getOraclePrice(token0, token1, _lendBalance0);
+            _healthFactor1 = (collateralBalance.mul(uint(100).sub(ltv)).mul(1e18).div(100)).div(_borrowBalance1);
+        }
+        
+    }
 
     function userHealthFactor(uint _nftID) public view returns (uint256 _healthFactor0, uint256 _healthFactor1) {
         (uint _lendBalance0, uint _borrowBalance0) = userBalanceOftoken0(_nftID);
@@ -613,8 +636,8 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             
             _burnLPposition(_nftID, uint(-tok_amount), 0);
 
-            // check if _healthFactor > 1
-            checkHealthFactor(_nftID);
+            // check if _healthFactorLtv > 1
+            checkHealthFactorLtv(_nftID);
             
             transferToUser(token0, payable(_receiver), poolAmount);
 
@@ -636,8 +659,8 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             
             _burnLPposition(_nftID, 0, uint(tok_amount));
 
-            // check if _healthFactor > 1
-            checkHealthFactor(_nftID);
+            // check if _healthFactorLtv > 1
+            checkHealthFactorLtv(_nftID);
             
             transferToUser(token1, payable(_receiver), poolAmount);
 
@@ -666,8 +689,8 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             
             _burnLPposition(_nftID, tok_amount0, 0);
 
-            // check if _healthFactor > 1
-            checkHealthFactor(_nftID);
+            // check if _healthFactorLtv > 1
+            checkHealthFactorLtv(_nftID);
             
             transferToUser(token0, payable(_receiver), uint(-_amount));
             
@@ -689,8 +712,8 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             
             _burnLPposition(_nftID, 0, tok_amount1);
 
-            // check if _healthFactor > 1
-            checkHealthFactor(_nftID);
+            // check if _healthFactorLtv > 1
+            checkHealthFactorLtv(_nftID);
             
             transferToUser(token1, payable(_receiver), uint(_amount));
             
@@ -714,8 +737,8 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             
             _mintBposition(_nftID, ntokens0, 0);
 
-            // check if _healthFactor > 1
-            checkHealthFactor(_nftID);
+            // check if _healthFactorLtv > 1
+            checkHealthFactorLtv(_nftID);
             
             _tm0.totalBorrow = _tm0.totalBorrow.add(uint(-amount));
             
@@ -732,8 +755,8 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             
             _mintBposition(_nftID, 0, ntokens1);
 
-            // check if _healthFactor > 1
-            checkHealthFactor(_nftID);
+            // check if _healthFactorLtv > 1
+            checkHealthFactorLtv(_nftID);
             
             _tm1.totalBorrow = _tm1.totalBorrow.add(uint(amount));
             
