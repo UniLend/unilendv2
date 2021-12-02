@@ -26,6 +26,7 @@ contract UnilendV2oracle is Ownable {
     
     
     constructor(address weth) {
+        require(weth != address(0), "UnilendV2: ZERO ADDRESS");
         WETH = weth;
     }
     
