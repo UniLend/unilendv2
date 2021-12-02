@@ -103,6 +103,7 @@ contract UnilendV2Core is ReentrancyGuard {
     
     
     constructor(address _poolMasterAddress) {
+        require(_poolMasterAddress != address(0), "UnilendV2: ZERO ADDRESS");
         governor = msg.sender;
         poolMasterAddress = _poolMasterAddress;
     }
@@ -520,7 +521,7 @@ contract UnilendV2Core is ReentrancyGuard {
     * @param _pool the address of the pool
     * @param _token_amount the amount to be redeemed
     **/
-    function redeem(address _pool, int _token_amount, address _receiver) external returns(int redeemTokens) {
+    function redeem(address _pool, int _token_amount, address _receiver) external nonReentrant returns(int redeemTokens) {
         (address _token0, ) = getPoolTokens(_pool);
         require(_token0 != address(0), 'UnilendV2: POOL NOT FOUND');
 
@@ -535,7 +536,7 @@ contract UnilendV2Core is ReentrancyGuard {
     * @param _pool the address of the pool
     * @param _amount the amount to be redeemed
     **/
-    function redeemUnderlying(address _pool, int _amount, address _receiver) external onlyAmountNotZero(_amount) returns(int _token_amount){
+    function redeemUnderlying(address _pool, int _amount, address _receiver) external onlyAmountNotZero(_amount) nonReentrant returns(int _token_amount){
         (address _token0, ) = getPoolTokens(_pool);
         require(_token0 != address(0), 'UnilendV2: POOL NOT FOUND');
 
@@ -547,7 +548,7 @@ contract UnilendV2Core is ReentrancyGuard {
     
     
     
-    function borrow(address _pool, int _amount, uint _collateral_amount, address payable _recipient) external onlyAmountNotZero(_amount) {
+    function borrow(address _pool, int _amount, uint _collateral_amount, address payable _recipient) external onlyAmountNotZero(_amount) nonReentrant {
         (address _token0, address _token1) = getPoolTokens(_pool);
         require(_token0 != address(0), 'UnilendV2: POOL NOT FOUND');
         
@@ -602,7 +603,7 @@ contract UnilendV2Core is ReentrancyGuard {
     }
     
     
-    function repay(address _pool, int _amount, address _for) external onlyAmountNotZero(_amount) {
+    function repay(address _pool, int _amount, address _for) external onlyAmountNotZero(_amount) nonReentrant {
         (address _token0, address _token1) = getPoolTokens(_pool);
         require(_token0 != address(0), 'UnilendV2: POOL NOT FOUND');
         
@@ -626,7 +627,7 @@ contract UnilendV2Core is ReentrancyGuard {
     
     
     
-    function liquidate(address _pool, uint _price, int _amount, address _receiver, bool uPosition) external onlyAmountNotZero(_amount) {
+    function liquidate(address _pool, uint _price, int _amount, address _receiver, bool uPosition) external onlyAmountNotZero(_amount) nonReentrant {
         (address _token0, address _token1) = getPoolTokens(_pool);
         require(_token0 != address(0), 'UnilendV2: POOL NOT FOUND');
         
