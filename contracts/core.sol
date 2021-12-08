@@ -566,13 +566,6 @@ contract UnilendV2Core is ReentrancyGuard {
                 "There is not enough liquidity0 available to borrow"
             );
             
-            (uint _lendBalance1, ) = _poolContract.userBalanceOftoken1(_nftID);
-            
-            uint estTokens = getOraclePrice(_token0, _token1, _collateral_amount.add(_lendBalance1));
-            uint maxTokens = estTokens.mul(_poolContract.getLTV()).div(100);
-            
-            require(maxTokens >= uint(-_amount), 'UnilendV2: LTV Limit Reached');
-            
             // lend collateral 
             if(_collateral_amount > 0){
                 iLend(_pool, _token1, int(_collateral_amount), _nftID);
@@ -585,13 +578,6 @@ contract UnilendV2Core is ReentrancyGuard {
                 _poolContract.getAvailableLiquidity1() >= uint(_amount),
                 "There is not enough liquidity1 available to borrow"
             );
-            
-            (uint _lendBalance0, ) = _poolContract.userBalanceOftoken0(_nftID);
-            
-            uint estTokens = getOraclePrice(_token1, _token0, _collateral_amount.add(_lendBalance0));
-            uint maxTokens = estTokens.mul(_poolContract.getLTV()).div(100);
-            
-            require(maxTokens >= uint(_amount), 'UnilendV2: LTV Limit Reached');
             
             // lend collateral 
             if(_collateral_amount > 0){
