@@ -240,7 +240,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
         } 
         else {
             uint collateralBalance = IUnilendV2Core(core).getOraclePrice(token1, token0, _lendBalance1);
-            _healthFactor0 = (collateralBalance.mul(uint(100).sub(ltv)).mul(1e18).div(100)).div(_borrowBalance0);
+            _healthFactor0 = (collateralBalance.mul(ltv).mul(1e18).div(100)).div(_borrowBalance0);
         }
         
         
@@ -249,7 +249,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
         } 
         else {
             uint collateralBalance = IUnilendV2Core(core).getOraclePrice(token0, token1, _lendBalance0);
-            _healthFactor1 = (collateralBalance.mul(uint(100).sub(ltv)).mul(1e18).div(100)).div(_borrowBalance1);
+            _healthFactor1 = (collateralBalance.mul(ltv).mul(1e18).div(100)).div(_borrowBalance1);
         }
         
     }
