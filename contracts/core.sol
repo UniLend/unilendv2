@@ -37,6 +37,7 @@ interface IUnilendV2Pool {
     function setLB(uint8 _number) external;
     function setRF(uint8 _number) external;
     function setInterestRateAddress(address _address) external;
+    function accrueInterest() external;
 
     function lend(uint _nftID, int amount) external returns(uint);
     function redeem(uint _nftID, int tok_amount, address _receiver) external returns(int);
@@ -499,6 +500,7 @@ contract UnilendV2Core is ReentrancyGuard {
     
     function iLend(address _pool, address _token, int _amount, uint _nftID) internal returns(uint mintedTokens) {
         address _user = msg.sender;
+        IUnilendV2Pool(_pool).accrueInterest();
         
         if(_amount < 0){
             uint reserveBalance = IERC20(_token).balanceOf(_pool);
@@ -511,7 +513,7 @@ contract UnilendV2Core is ReentrancyGuard {
             IERC20(_token).safeTransferFrom(_user, _pool, uint(_amount));
             _amount = int( ( IERC20(_token).balanceOf(_pool) ).sub(reserveBalance) );
         }
-        
+
         mintedTokens = IUnilendV2Pool(_pool).lend(_nftID, _amount);
     }
     
