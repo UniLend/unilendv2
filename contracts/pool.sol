@@ -518,7 +518,8 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
                 if(_userLqIndex > 0){
                     _lastUserLqPrice = _userLiquidationPrice0[_nftID];
                     uint _lastIndexforLastPrice = liquidationPrices0[_lastUserLqPrice].length - 1;
-                    if(_userLqIndex < _lastIndexforLastPrice){
+
+                    if(_userLqIndex <= _lastIndexforLastPrice){
                         uint _lastLqNft = liquidationPrices0[_lastUserLqPrice][_lastIndexforLastPrice];
 
                         userLiquidationIndex0[_lastLqNft] = _userLqIndex;
@@ -552,7 +553,8 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
                 if(_userLqIndex > 0){
                     _lastUserLqPrice = _userLiquidationPrice1[_nftID];
                     uint _lastIndexforLastPrice = liquidationPrices1[_lastUserLqPrice].length - 1;
-                    if(_userLqIndex < _lastIndexforLastPrice){
+
+                    if(_userLqIndex <= _lastIndexforLastPrice){
                         uint _lastLqNft = liquidationPrices1[_lastUserLqPrice][_lastIndexforLastPrice];
 
                         userLiquidationIndex1[_lastLqNft] = _userLqIndex;
@@ -578,8 +580,6 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
     
     
     function lend(uint _nftID, int amount) external onlyCore returns(uint) {
-        accrueInterest();
-        
         uint ntokens0; uint ntokens1;
         
         if(amount < 0){
@@ -803,7 +803,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             uint _totalLiability = getShareValue( _totalBorrow, _tm1.totalBorrowShare, _positionMt.token1borrowShare) ;
             
             if(uint(amount) > _totalLiability){
-                amount = -int(_totalLiability);
+                amount = int(_totalLiability);
                 
                 _burnBposition(_nftID, 0, _positionMt.token1borrowShare);
                 
