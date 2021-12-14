@@ -16,7 +16,7 @@ contract UnilendV2InterestRateModel {
         if(totalBorrow > 0){
             uRate = (totalBorrow.mul(10**18)).div(availableBorrow.add(totalBorrow));
         }
-        uint apy = uint(10).mul( uRate.mul(30) );
+        uint apy = uint(10).add( uRate.mul(30) );
         return apy.div(2102400); // per block interest
     }
 
