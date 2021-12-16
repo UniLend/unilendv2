@@ -524,7 +524,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
 
                         userLiquidationIndex0[_lastLqNft] = _userLqIndex;
                         liquidationPrices0[_lastUserLqPrice][_userLqIndex] = _lastLqNft;
-                        delete liquidationPrices0[_lastUserLqPrice][_lastIndexforLastPrice];
+                        liquidationPrices0[_lastUserLqPrice].pop();
                     }
                 }
 
@@ -559,7 +559,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
 
                         userLiquidationIndex1[_lastLqNft] = _userLqIndex;
                         liquidationPrices1[_lastUserLqPrice][_userLqIndex] = _lastLqNft;
-                        delete liquidationPrices1[_lastUserLqPrice][_lastIndexforLastPrice];
+                        liquidationPrices1[_lastUserLqPrice].pop();
                     }
                 }
 
@@ -861,7 +861,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
         }
     }
     
-    function liquidateUser0(uint _nftID, uint _price, uint pendingAmount, uint _index, uint _toNftID) internal returns(uint, uint) {
+    function liquidateUser0(uint _nftID, uint _price, uint pendingAmount, uint _toNftID) internal returns(uint, uint) {
         (, uint _borrowBalance0) = userBalanceOftoken0(_nftID);
         (uint _lendBalance1, ) = userBalanceOftoken1(_nftID);
         
@@ -894,7 +894,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             
             // user fully liquidated
             if(_borrowBalance0 == procAmount){
-                delete liquidationPrices0[_price][_index];
+                liquidationPrices0[_price].pop();
                 userLiquidationIndex0[_nftID] = 0;
                 _userLiquidationPrice0[_nftID] = 0;
             }
@@ -906,7 +906,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
         }
     }
     
-    function liquidateUser1(uint _nftID, uint _price, uint pendingAmount, uint _index, uint _toNftID) internal returns(uint, uint) {
+    function liquidateUser1(uint _nftID, uint _price, uint pendingAmount, uint _toNftID) internal returns(uint, uint) {
         (uint _lendBalance0, ) = userBalanceOftoken0(_nftID);
         (, uint _borrowBalance1) = userBalanceOftoken1(_nftID);
         
@@ -939,7 +939,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
 
             // user fully liquidated
             if(_borrowBalance1 == procAmount){
-                delete liquidationPrices1[_price][_index];
+                liquidationPrices1[_price].pop();
                 userLiquidationIndex1[_nftID] = 0;
                 _userLiquidationPrice1[_nftID] = 0;
             }
@@ -965,7 +965,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
                 
                 for (uint i=0; i<totLiquidations; i++) {
                     uint _recAmount;
-                    (pendingAmount, _recAmount) = liquidateUser0(liquidationPrices0[_price][totLiquidations-i], _price, pendingAmount, totLiquidations-i, _toNftID);
+                    (pendingAmount, _recAmount) = liquidateUser0(liquidationPrices0[_price][totLiquidations-i], _price, pendingAmount, _toNftID);
 
                     receivingAmount = receivingAmount.add(_recAmount);
                     
@@ -992,7 +992,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
                 
                 for (uint i=0; i<totLiquidations; i++) {
                     uint _recAmount;
-                    (pendingAmount, _recAmount) = liquidateUser1(liquidationPrices1[_price][totLiquidations-i], _price, pendingAmount, totLiquidations-i, _toNftID);
+                    (pendingAmount, _recAmount) = liquidateUser1(liquidationPrices1[_price][totLiquidations-i], _price, pendingAmount, _toNftID);
                     
                     receivingAmount = receivingAmount.add(_recAmount);
 
