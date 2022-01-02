@@ -44,7 +44,8 @@ interface IUnilendV2Pool {
     function redeemUnderlying(uint _nftID, int amount, address _receiver) external returns(int);
     function borrow(uint _nftID, int amount, address payable _recipient) external;
     function repay(uint _nftID, int amount, address payer) external returns(int);
-    function liquidate(uint _price, int amount, address _receiver, uint _toNftID) external returns(uint);
+    function liquidate(uint _nftID, int amount, address _receiver, uint _toNftID) external returns(int);
+    function liquidateMulti(uint[] calldata _nftIDs, int[] calldata amount, address _receiver, uint _toNftID) external returns(int);
     
     function processFlashLoan(address _receiver, int _amount) external;
     function init(address _token0, address _token1, address _interestRate, uint8 _ltv, uint8 _lb, uint8 _rf) external;
@@ -61,7 +62,6 @@ interface IUnilendV2Pool {
     function userSharesOftokens(uint _nftID) external view returns (uint _lendShare0, uint _borrowShare0, uint _lendShare1, uint _borrowShare1);
     function userHealthFactor(uint _nftID) external view returns (uint256 _healthFactor0, uint256 _healthFactor1);
 
-    function userLiquidationPrices(uint _nftID) external view returns (uint, uint);
     function getAvailableLiquidity0() external view returns (uint _available);
     function getAvailableLiquidity1() external view returns (uint _available);
 }
@@ -253,6 +253,7 @@ contract UnilendV2Core is ReentrancyGuard {
         }
     }
     
+
     function getUserHealthFactor(address _pool, address _address) external view returns (uint _healthFactor0, uint _healthFactor1) {
         (address _token0, ) = getPoolTokens(_pool);
         if(_token0 != address(0)){
@@ -263,15 +264,6 @@ contract UnilendV2Core is ReentrancyGuard {
         }
     }
 
-    function getUserLiquidationPrices(address _pool, address _address) external view returns (uint _lPrice0, uint _lPrice1) {
-        (address _token0, ) = getPoolTokens(_pool);
-        if(_token0 != address(0)){
-            uint _nftID = IUnilendV2Position(positionsAddress).getNftId(_pool, _address);
-            if(_nftID > 0){
-                (_lPrice0, _lPrice1) = IUnilendV2Pool(_pool).userLiquidationPrices(_nftID);
-            }
-        }
-    }
 
     function getPoolAvailableLiquidity(address _pool) external view returns (uint _token0Liquidity, uint _token1Liquidity) {
         (address _token0, ) = getPoolTokens(_pool);
@@ -591,7 +583,7 @@ contract UnilendV2Core is ReentrancyGuard {
     }
     
     
-    function repay(address _pool, int _amount, address _for) external onlyAmountNotZero(_amount) nonReentrant {
+    function repay(address _pool, int _amount, address _for) external onlyAmountNotZero(_amount) nonReentrant returns (int _retAmount) {
         (address _token0, address _token1) = getPoolTokens(_pool);
         require(_token0 != address(0), 'UnilendV2: POOL NOT FOUND');
         
@@ -601,7 +593,7 @@ contract UnilendV2Core is ReentrancyGuard {
         uint _nftID = IUnilendV2Position(positionsAddress).getNftId(_pool, _for);
         require(_nftID > 0, 'UnilendV2: POSITION NOT FOUND');
         
-        int _retAmount = _poolContract.repay(_nftID, _amount, _user);
+        _retAmount = _poolContract.repay(_nftID, _amount, _user);
         
         if(_retAmount < 0){
             IERC20(_token0).safeTransferFrom(_user, _pool, uint(-_retAmount));
@@ -615,35 +607,64 @@ contract UnilendV2Core is ReentrancyGuard {
     
     
     
-    function liquidate(address _pool, uint _price, int _amount, address _receiver, bool uPosition) external onlyAmountNotZero(_amount) nonReentrant {
+    function liquidate(address _pool, address _for, int _amount, address _receiver, bool uPosition) external onlyAmountNotZero(_amount) nonReentrant returns(int payAmount) {
         (address _token0, address _token1) = getPoolTokens(_pool);
         require(_token0 != address(0), 'UnilendV2: POOL NOT FOUND');
         
         IUnilendV2Pool _poolContract = IUnilendV2Pool(_pool);
         address _user = msg.sender;
-        uint payAmount;
+
+        uint _nftID = IUnilendV2Position(positionsAddress).getNftId(_pool, _for);
+        require(_nftID > 0, 'UnilendV2: POSITION NOT FOUND');
 
         if(uPosition){
-            uint _nftID = IUnilendV2Position(positionsAddress).getNftId(_pool, _receiver);
-            if(_nftID == 0){
-                _nftID = IUnilendV2Position(positionsAddress).newPosition(_pool, _receiver);
+            uint _toNftID = IUnilendV2Position(positionsAddress).getNftId(_pool, _receiver);
+            if(_toNftID == 0){
+                _toNftID = IUnilendV2Position(positionsAddress).newPosition(_pool, _receiver);
             }
 
-            payAmount = _poolContract.liquidate(_price, _amount, _receiver, _nftID);
+            payAmount = _poolContract.liquidate(_nftID, _amount, _receiver, _toNftID);
         } 
         else {
-            payAmount = _poolContract.liquidate(_price, _amount, _receiver, 0);
+            payAmount = _poolContract.liquidate(_nftID, _amount, _receiver, 0);
         }
         
 
-        if(_amount < 0){
-            if(payAmount > 0){
-                IERC20(_token0).safeTransferFrom(_user, _pool, payAmount);
+        if(payAmount < 0){
+            IERC20(_token0).safeTransferFrom(_user, _pool, uint(-payAmount));
+        }
+        
+        if(payAmount > 0){
+            IERC20(_token1).safeTransferFrom(_user, _pool, uint(payAmount));
+        }
+    }
+
+    
+    function liquidateMulti(address _pool, uint[] calldata _nftIDs, int[] calldata _amounts, address _receiver, bool uPosition) external nonReentrant returns (int payAmount){
+        (address _token0, address _token1) = getPoolTokens(_pool);
+        require(_token0 != address(0), 'UnilendV2: POOL NOT FOUND');
+        
+        IUnilendV2Pool _poolContract = IUnilendV2Pool(_pool);
+        address _user = msg.sender;
+
+        if(uPosition){
+            uint _toNftID = IUnilendV2Position(positionsAddress).getNftId(_pool, _receiver);
+            if(_toNftID == 0){
+                _toNftID = IUnilendV2Position(positionsAddress).newPosition(_pool, _receiver);
             }
-        } else {
-            if(payAmount > 0){
-                IERC20(_token1).safeTransferFrom(_user, _pool, payAmount);
-            }
+
+            payAmount = _poolContract.liquidateMulti(_nftIDs, _amounts, _receiver, _toNftID);
+        } 
+        else {
+            payAmount = _poolContract.liquidateMulti(_nftIDs, _amounts, _receiver, 0);
+        }
+
+        if(payAmount < 0){
+            IERC20(_token0).safeTransferFrom(_user, _pool, uint(-payAmount));
+        }
+        
+        if(payAmount > 0){
+            IERC20(_token1).safeTransferFrom(_user, _pool, uint(payAmount));
         }
     }
     
