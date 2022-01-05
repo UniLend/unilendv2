@@ -641,11 +641,11 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             require(ntokens0 > 0, 'Insufficient Borrow0 Liquidity Minted');
             
             _mintBposition(_nftID, ntokens0, 0);
+            
+            _tm0.totalBorrow = _tm0.totalBorrow.add(uint(-amount));
 
             // check if _healthFactorLtv > 1
             checkHealthFactorLtv(_nftID);
-            
-            _tm0.totalBorrow = _tm0.totalBorrow.add(uint(-amount));
             
             transferToUser(token0, payable(_recipient), uint(-amount));
 
@@ -659,11 +659,11 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             require(ntokens1 > 0, 'Insufficient Borrow1 Liquidity Minted');
             
             _mintBposition(_nftID, 0, ntokens1);
+            
+            _tm1.totalBorrow = _tm1.totalBorrow.add(uint(amount));
 
             // check if _healthFactorLtv > 1
             checkHealthFactorLtv(_nftID);
-            
-            _tm1.totalBorrow = _tm1.totalBorrow.add(uint(amount));
             
             transferToUser(token1, payable(_recipient), uint(amount));
 
