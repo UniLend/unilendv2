@@ -643,6 +643,7 @@ contract UnilendV2Core is ReentrancyGuard {
     function liquidateMulti(address _pool, uint[] calldata _nftIDs, int[] calldata _amounts, address _receiver, bool uPosition) external nonReentrant returns (int payAmount){
         (address _token0, address _token1) = getPoolTokens(_pool);
         require(_token0 != address(0), 'UnilendV2: POOL NOT FOUND');
+        require(_nftIDs.length == _amounts.length, 'UnilendV2: INVALID ARRAY LENGTH');
         
         IUnilendV2Pool _poolContract = IUnilendV2Pool(_pool);
         address _user = msg.sender;
