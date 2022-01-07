@@ -742,25 +742,25 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
 
         if(amount < 0){
             
-            (, uint _borrowBalance1) = userBalanceOftoken0(_nftID);
-            (uint _lendBalance0, ) = userBalanceOftoken1(_nftID);
+            (, uint _borrowBalance0) = userBalanceOftoken0(_nftID);
+            (uint _lendBalance1, ) = userBalanceOftoken1(_nftID);
             
             uint _healthFactor = type(uint256).max;
-            if (_borrowBalance1 > 0){
-                uint collateralBalance = IUnilendV2Core(core).getOraclePrice(token1, token0, _lendBalance0);
-                _healthFactor = (collateralBalance.mul(uint(100).sub(lb)).mul(1e18).div(100)).div(_borrowBalance1);
+            if (_borrowBalance0 > 0){
+                uint collateralBalance = IUnilendV2Core(core).getOraclePrice(token1, token0, _lendBalance1);
+                _healthFactor = (collateralBalance.mul(uint(100).sub(lb)).mul(1e18).div(100)).div(_borrowBalance0);
             }
             
             if(_healthFactor < HEALTH_FACTOR_LIQUIDATION_THRESHOLD){
                 uint procAmountIN;
                 uint recAmountIN;
-                if(_borrowBalance1 <= uint(-amount)){
-                    procAmountIN = _borrowBalance1;
-                    recAmountIN = _lendBalance0;
+                if(_borrowBalance0 <= uint(-amount)){
+                    procAmountIN = _borrowBalance0;
+                    recAmountIN = _lendBalance1;
                 } 
                 else {
                     procAmountIN = uint(-amount);
-                    recAmountIN = (_lendBalance0.mul( procAmountIN )).div(_borrowBalance1);
+                    recAmountIN = (_lendBalance1.mul( procAmountIN )).div(_borrowBalance0);
                 }
 
 
@@ -782,7 +782,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
                 totReceiveAmount = int(recAmountIN);
 
 
-                if(liquidatedAmount > 0){
+                if(liquidatedAmount < 0){
                     emit LiquidateBorrow(token0, _nftID, _toNftID, uint(-liquidatedAmount), recAmountIN);
                 }
 
