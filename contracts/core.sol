@@ -131,7 +131,6 @@ contract UnilendV2Core is ReentrancyGuard {
         uint256 _timestamp
     );
     
-    event PoolCreated(address indexed token, address pool, uint);
     event NewDefaultMarketConfig(uint8 _ltv, uint8 _lb, uint8 _rf);
     event NewDefaultInterestRateAddress(address indexed _address);
     event NewGovernorAddress(address indexed _address);
