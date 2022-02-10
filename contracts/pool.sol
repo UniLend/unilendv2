@@ -114,15 +114,6 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
     uint8 rf;   // reserve factor
     uint64 public constant HEALTH_FACTOR_LIQUIDATION_THRESHOLD = 1e18;
 
-    mapping(uint => uint[]) public liquidationPrices0;
-    mapping(uint => uint[]) public liquidationPrices1;
-    
-    mapping(uint => uint) public userLiquidationIndex0;
-    mapping(uint => uint) public userLiquidationIndex1;
-    
-    mapping(uint => uint) public _userLiquidationPrice0;
-    mapping(uint => uint) public _userLiquidationPrice1;
-
     tM public token0Data;
     tM public token1Data;
     mapping(uint => pM) public positionData;
@@ -153,7 +144,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
     event InterestUpdate( uint256 _newRate0, uint256 _newRate1, uint256 totalBorrows0, uint256 totalBorrows1 );
     event Borrow( address indexed _asset, uint256 indexed _positionID, uint256 _amount, uint256 totalBorrows, address _recipient );
     event RepayBorrow( address indexed _asset, uint256 indexed _positionID, uint256 _amount, uint256 totalBorrows, address _payer );
-    event LiquidateBorrow( address indexed _asset, uint indexed _price, address _receiver, uint repayAmount, uint seizeTokens );
+    event LiquidateBorrow( address indexed _asset, uint256 indexed _positionID, uint256 indexed _toPositionID, uint repayAmount, uint seizeTokens );
     event LiquidationPriceUpdate( uint256 indexed _positionID, uint256 _price, uint256 _last_price, uint256 _amount );
 
     event NewMarketInterestRateModel(address oldInterestRateModel, address newInterestRateModel);
@@ -226,10 +217,6 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             _available = maxAvail.sub(totalBorrow);
         }
     }
-
-    function userLiquidationPrices(uint _nftID) external view returns (uint, uint){
-        return (_userLiquidationPrice0[_nftID], _userLiquidationPrice1[_nftID]);
-    } 
 
     function userHealthFactorLtv(uint _nftID) public view returns (uint256 _healthFactor0, uint256 _healthFactor1) {
         (uint _lendBalance0, uint _borrowBalance0) = userBalanceOftoken0(_nftID);
@@ -501,80 +488,6 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
         }
     }
     
-    function _updateUserLiquidationPrice(uint _nftID) internal {
-        (uint _lendBalance0, uint _borrowBalance0) = userBalanceOftoken0(_nftID);
-        (uint _lendBalance1, uint _borrowBalance1) = userBalanceOftoken1(_nftID);
-        
-
-        if(_borrowBalance0 > 0){
-            uint _estLendAfterLb = ( _lendBalance1.mul(uint(100).sub(lb)) ).div(100);
-            uint _userLiquidationPrice = priceScaled( _estLendAfterLb.mul(10**18).div(_borrowBalance0) );
-            uint _userLqIndex = userLiquidationIndex0[_nftID];
-            
-            if(_userLiquidationPrice0[_nftID] != _userLiquidationPrice){
-
-                // remove user index and update last one
-                uint _lastUserLqPrice;
-                if(_userLqIndex > 0){
-                    _lastUserLqPrice = _userLiquidationPrice0[_nftID];
-                    uint _lastIndexforLastPrice = liquidationPrices0[_lastUserLqPrice].length - 1;
-
-                    if(_userLqIndex <= _lastIndexforLastPrice){
-                        uint _lastLqNft = liquidationPrices0[_lastUserLqPrice][_lastIndexforLastPrice];
-
-                        userLiquidationIndex0[_lastLqNft] = _userLqIndex;
-                        liquidationPrices0[_lastUserLqPrice][_userLqIndex] = _lastLqNft;
-                        liquidationPrices0[_lastUserLqPrice].pop();
-                    }
-                }
-
-                if(liquidationPrices0[_userLiquidationPrice].length == 0){
-                    liquidationPrices0[_userLiquidationPrice].push(0);
-                }
-
-                liquidationPrices0[_userLiquidationPrice].push(_nftID);
-                userLiquidationIndex0[_nftID] = liquidationPrices0[_userLiquidationPrice].length - 1;
-                _userLiquidationPrice0[_nftID] = _userLiquidationPrice;
-
-                emit LiquidationPriceUpdate(_nftID, _userLiquidationPrice, _lastUserLqPrice, _estLendAfterLb);
-            }
-        }
-        
-        
-        if(_borrowBalance1 > 0){
-            uint _estLendAfterLb = ( _lendBalance0.mul(uint(100).sub(lb)).div(100) );
-            uint _userLiquidationPrice = priceScaled( _borrowBalance1.mul(10**18).div(_estLendAfterLb) );
-            uint _userLqIndex = userLiquidationIndex1[_nftID];
-
-            if(_userLiquidationPrice1[_nftID] != _userLiquidationPrice){
-
-                // remove user index and update last one
-                uint _lastUserLqPrice;
-                if(_userLqIndex > 0){
-                    _lastUserLqPrice = _userLiquidationPrice1[_nftID];
-                    uint _lastIndexforLastPrice = liquidationPrices1[_lastUserLqPrice].length - 1;
-
-                    if(_userLqIndex <= _lastIndexforLastPrice){
-                        uint _lastLqNft = liquidationPrices1[_lastUserLqPrice][_lastIndexforLastPrice];
-
-                        userLiquidationIndex1[_lastLqNft] = _userLqIndex;
-                        liquidationPrices1[_lastUserLqPrice][_userLqIndex] = _lastLqNft;
-                        liquidationPrices1[_lastUserLqPrice].pop();
-                    }
-                }
-
-                if(liquidationPrices1[_userLiquidationPrice].length == 0){
-                    liquidationPrices1[_userLiquidationPrice].push(0);
-                }
-
-                liquidationPrices1[_userLiquidationPrice].push(_nftID);
-                userLiquidationIndex1[_nftID] = liquidationPrices1[_userLiquidationPrice].length - 1;
-                _userLiquidationPrice1[_nftID] = _userLiquidationPrice;
-
-                emit LiquidationPriceUpdate(_nftID, _userLiquidationPrice, _lastUserLqPrice, _estLendAfterLb);
-            }
-        }
-    }
     
     // --------
     
@@ -605,8 +518,6 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
         }
         
         _mintLPposition(_nftID, ntokens0, ntokens1);
-
-        _updateUserLiquidationPrice(_nftID);
 
         return 0;
     }
@@ -663,7 +574,6 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             emit Redeem(token1, _nftID, uint(tok_amount), poolAmount);
         }
 
-        _updateUserLiquidationPrice(_nftID);
     }
     
     
@@ -718,7 +628,6 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             emit Redeem(token1, _nftID, tok_amount1, uint(_amount));
         }
 
-        _updateUserLiquidationPrice(_nftID);
     }
     
     
@@ -732,11 +641,11 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             require(ntokens0 > 0, 'Insufficient Borrow0 Liquidity Minted');
             
             _mintBposition(_nftID, ntokens0, 0);
+            
+            _tm0.totalBorrow = _tm0.totalBorrow.add(uint(-amount));
 
             // check if _healthFactorLtv > 1
             checkHealthFactorLtv(_nftID);
-            
-            _tm0.totalBorrow = _tm0.totalBorrow.add(uint(-amount));
             
             transferToUser(token0, payable(_recipient), uint(-amount));
 
@@ -750,18 +659,17 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             require(ntokens1 > 0, 'Insufficient Borrow1 Liquidity Minted');
             
             _mintBposition(_nftID, 0, ntokens1);
+            
+            _tm1.totalBorrow = _tm1.totalBorrow.add(uint(amount));
 
             // check if _healthFactorLtv > 1
             checkHealthFactorLtv(_nftID);
-            
-            _tm1.totalBorrow = _tm1.totalBorrow.add(uint(amount));
             
             transferToUser(token1, payable(_recipient), uint(amount));
 
             emit Borrow(token1, _nftID, uint(amount), _tm1.totalBorrow, _recipient);
         }
 
-        _updateUserLiquidationPrice(_nftID);
     }
     
     
@@ -822,195 +730,164 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             emit RepayBorrow(token1, _nftID, uint(amount), _tm1.totalBorrow, _payer);
         }
 
-        _updateUserLiquidationPrice(_nftID);
     }
-    
-    function liqudationProcess(uint _nftID, uint _toNftID, int procAmount, uint recAmount) internal {
+
+
+
+    function liquidateInternal(uint _nftID, int amount, uint _toNftID) internal returns(int liquidatedAmount, int totReceiveAmount)  {
+        accrueInterest();
+
         tM storage _tm0 = token0Data;
         tM storage _tm1 = token1Data;
 
-        if(procAmount < 0){
-            uint amountToShare0 = getShareByValue( _tm0.totalBorrow, _tm0.totalBorrowShare, uint(-procAmount) );
-            _burnBposition(_nftID, amountToShare0, 0);
-            _tm0.totalBorrow = _tm0.totalBorrow.sub(uint(-procAmount)); // remove borrow amount
-
-            
-            uint _totTokenBalance1 =  IERC20(token1).balanceOf(address(this)).add(_tm1.totalBorrow);
-            uint amountToShare1 = getShareByValue( _totTokenBalance1, _tm1.totalLendShare, recAmount );
-            _burnLPposition(_nftID, 0, amountToShare1);
-
-            if(_toNftID > 0){
-                _mintLPposition(_toNftID, 0, amountToShare1);
-            }
-        }
-
-
-        if(procAmount > 0){
-            uint amountToShare1 = getShareByValue( _tm1.totalBorrow, _tm1.totalBorrowShare, uint(procAmount) );
-            _burnBposition(_nftID, 0, amountToShare1);
-            _tm1.totalBorrow = _tm1.totalBorrow.sub(uint(procAmount)); // remove borrow amount
-
-            
-            uint _totTokenBalance0 =  IERC20(token0).balanceOf(address(this)).add(_tm0.totalBorrow);
-            uint amountToShare0 = getShareByValue( _totTokenBalance0, _tm0.totalLendShare, recAmount );
-            _burnLPposition(_nftID, amountToShare0, 0);
-
-            if(_toNftID > 0){
-                _mintLPposition(_toNftID, amountToShare0, 0);
-            }
-        }
-    }
-    
-    function liquidateUser0(uint _nftID, uint _price, uint pendingAmount, uint _toNftID) internal returns(uint, uint) {
-        (, uint _borrowBalance0) = userBalanceOftoken0(_nftID);
-        (uint _lendBalance1, ) = userBalanceOftoken1(_nftID);
-        
-        uint _healthFactor = type(uint256).max;
-        if (_borrowBalance0 > 0){
-            uint collateralBalance = IUnilendV2Core(core).getOraclePrice(token1, token0, _lendBalance1);
-            _healthFactor = (collateralBalance.mul(uint(100).sub(lb)).mul(1e18).div(100)).div(_borrowBalance0);
-        }
-        
-        if(_healthFactor < HEALTH_FACTOR_LIQUIDATION_THRESHOLD){
-            uint procAmount;
-            uint recAmount;
-            if(_borrowBalance0 <= pendingAmount){
-                procAmount = _borrowBalance0;
-                pendingAmount = pendingAmount.sub(_borrowBalance0);
-                recAmount = _lendBalance1;
-            } 
-            else {
-                procAmount = pendingAmount;
-                recAmount = (_lendBalance1.mul( pendingAmount )).div(_borrowBalance0);
-                pendingAmount = 0;
-            }
-
-            
-            if(_toNftID > 0){
-                liqudationProcess(_nftID, _toNftID, -int(procAmount), recAmount);
-            } else {
-                liqudationProcess(_nftID, 0, -int(procAmount), recAmount);
-            }
-            
-            // user fully liquidated
-            if(_borrowBalance0 == procAmount){
-                liquidationPrices0[_price].pop();
-                userLiquidationIndex0[_nftID] = 0;
-                _userLiquidationPrice0[_nftID] = 0;
-            }
-            
-            return (pendingAmount, recAmount);
-        } 
-        else {
-            return (pendingAmount, 0);
-        }
-    }
-    
-    function liquidateUser1(uint _nftID, uint _price, uint pendingAmount, uint _toNftID) internal returns(uint, uint) {
-        (uint _lendBalance0, ) = userBalanceOftoken0(_nftID);
-        (, uint _borrowBalance1) = userBalanceOftoken1(_nftID);
-        
-        uint _healthFactor = type(uint256).max;
-        if (_borrowBalance1 > 0){
-            uint collateralBalance = IUnilendV2Core(core).getOraclePrice(token0, token1, _lendBalance0);
-            _healthFactor = (collateralBalance.mul(uint(100).sub(lb)).mul(1e18).div(100)).div(_borrowBalance1);
-        }
-        
-        if(_healthFactor < HEALTH_FACTOR_LIQUIDATION_THRESHOLD){
-            uint procAmount;
-            uint recAmount;
-            if(_borrowBalance1 <= pendingAmount){
-                procAmount = _borrowBalance1;
-                pendingAmount = pendingAmount.sub(_borrowBalance1);
-                recAmount = _lendBalance0;
-            } 
-            else {
-                procAmount = pendingAmount;
-                recAmount = (_lendBalance0.mul( pendingAmount )).div(_borrowBalance1);
-                pendingAmount = 0;
-            }
-            
-
-            if(_toNftID > 0){
-                liqudationProcess(_nftID, _toNftID, int(procAmount), recAmount);
-            } else {
-                liqudationProcess(_nftID, 0, int(procAmount), recAmount);
-            }
-
-            // user fully liquidated
-            if(_borrowBalance1 == procAmount){
-                liquidationPrices1[_price].pop();
-                userLiquidationIndex1[_nftID] = 0;
-                _userLiquidationPrice1[_nftID] = 0;
-            }
-            
-            return (pendingAmount, recAmount);
-        } 
-        else {
-            return (pendingAmount, 0);
-        }
-    }
-    
-    function liquidate(uint _price, int amount, address _receiver, uint _toNftID) external onlyCore returns(uint totLiquidatedAmount) {
-        accrueInterest();
-        
-        uint receivingAmount;
-
         if(amount < 0){
-            uint pendingAmount = uint(-amount);
-            uint totLiquidations = liquidationPrices0[_price].length;
             
-            if(totLiquidations > 1){
-                totLiquidations = totLiquidations - 1;
-                
-                for (uint i=0; i<totLiquidations; i++) {
-                    uint _recAmount;
-                    (pendingAmount, _recAmount) = liquidateUser0(liquidationPrices0[_price][totLiquidations-i], _price, pendingAmount, _toNftID);
-
-                    receivingAmount = receivingAmount.add(_recAmount);
-                    
-                    if(pendingAmount == 0){ i = totLiquidations; }
+            (, uint _borrowBalance0) = userBalanceOftoken0(_nftID);
+            (uint _lendBalance1, ) = userBalanceOftoken1(_nftID);
+            
+            uint _healthFactor = type(uint256).max;
+            if (_borrowBalance0 > 0){
+                uint collateralBalance = IUnilendV2Core(core).getOraclePrice(token1, token0, _lendBalance1);
+                _healthFactor = (collateralBalance.mul(uint(100).sub(lb)).mul(1e18).div(100)).div(_borrowBalance0);
+            }
+            
+            if(_healthFactor < HEALTH_FACTOR_LIQUIDATION_THRESHOLD){
+                uint procAmountIN;
+                uint recAmountIN;
+                if(_borrowBalance0 <= uint(-amount)){
+                    procAmountIN = _borrowBalance0;
+                    recAmountIN = _lendBalance1;
+                } 
+                else {
+                    procAmountIN = uint(-amount);
+                    recAmountIN = (_lendBalance1.mul( procAmountIN )).div(_borrowBalance0);
                 }
+
+
+                uint amountToShare0 = getShareByValue( _tm0.totalBorrow, _tm0.totalBorrowShare, procAmountIN );
+                _burnBposition(_nftID, amountToShare0, 0);
+                _tm0.totalBorrow = _tm0.totalBorrow.sub(procAmountIN); // remove borrow amount
+
                 
+                uint _totTokenBalance1 =  IERC20(token1).balanceOf(address(this)).add(_tm1.totalBorrow);
+                uint amountToShare1 = getShareByValue( _totTokenBalance1, _tm1.totalLendShare, recAmountIN );
+                _burnLPposition(_nftID, 0, amountToShare1);
+
+                if(_toNftID > 0){
+                    _mintLPposition(_toNftID, 0, amountToShare1);
+                }
+
                 // tot amount to be deposit from liquidator
-                totLiquidatedAmount = uint(-amount).sub(pendingAmount);
-                
-                if(receivingAmount > 0 && _toNftID == 0){
-                    transferToUser(token1, payable(_receiver), receivingAmount);
+                liquidatedAmount = -int(procAmountIN);
+                totReceiveAmount = int(recAmountIN);
+
+
+                if(liquidatedAmount < 0){
+                    emit LiquidateBorrow(token0, _nftID, _toNftID, uint(-liquidatedAmount), recAmountIN);
                 }
 
-                emit LiquidateBorrow(token0, _price, _receiver, totLiquidatedAmount, receivingAmount);
             }
         }
+
 
         if(amount > 0){
-            uint pendingAmount = uint(amount);
-            uint totLiquidations = liquidationPrices1[_price].length;
+
+            (uint _lendBalance0, ) = userBalanceOftoken0(_nftID);
+            (, uint _borrowBalance1) = userBalanceOftoken1(_nftID);
             
-            if(totLiquidations > 1){
-                totLiquidations = totLiquidations - 1;
-                
-                for (uint i=0; i<totLiquidations; i++) {
-                    uint _recAmount;
-                    (pendingAmount, _recAmount) = liquidateUser1(liquidationPrices1[_price][totLiquidations-i], _price, pendingAmount, _toNftID);
-                    
-                    receivingAmount = receivingAmount.add(_recAmount);
-
-                    if(pendingAmount == 0){ i = totLiquidations; }
+            uint _healthFactor = type(uint256).max;
+            if (_borrowBalance1 > 0){
+                uint collateralBalance = IUnilendV2Core(core).getOraclePrice(token0, token1, _lendBalance0);
+                _healthFactor = (collateralBalance.mul(uint(100).sub(lb)).mul(1e18).div(100)).div(_borrowBalance1);
+            }
+            
+            if(_healthFactor < HEALTH_FACTOR_LIQUIDATION_THRESHOLD){
+                uint procAmountIN;
+                uint recAmountIN;
+                if(_borrowBalance1 <= uint(amount)){
+                    procAmountIN = _borrowBalance1;
+                    recAmountIN = _lendBalance0;
+                } 
+                else {
+                    procAmountIN = uint(amount);
+                    recAmountIN = (_lendBalance0.mul( procAmountIN )).div(_borrowBalance1);
                 }
+
+
+                uint amountToShare1 = getShareByValue( _tm1.totalBorrow, _tm1.totalBorrowShare, procAmountIN );
+                _burnBposition(_nftID, 0, amountToShare1);
+                _tm1.totalBorrow = _tm1.totalBorrow.sub(procAmountIN); // remove borrow amount
+
                 
+                uint _totTokenBalance0 =  IERC20(token0).balanceOf(address(this)).add(_tm0.totalBorrow);
+                uint amountToShare0 = getShareByValue( _totTokenBalance0, _tm0.totalLendShare, recAmountIN );
+                _burnLPposition(_nftID, amountToShare0, 0);
+
+                if(_toNftID > 0){
+                    _mintLPposition(_toNftID, amountToShare0, 0);
+                }
+
+
                 // tot liquidated amount to be deposit from liquidator
-                totLiquidatedAmount = uint(amount).sub(pendingAmount);
+                liquidatedAmount = int(procAmountIN);
+                totReceiveAmount = -int(recAmountIN);
                 
-                if(receivingAmount > 0 && _toNftID == 0){
-                    transferToUser(token0, payable(_receiver), receivingAmount);
+
+                if(liquidatedAmount > 0){
+                    emit LiquidateBorrow(token1, _nftID, _toNftID, uint(liquidatedAmount), recAmountIN);
                 }
 
-                emit LiquidateBorrow(token1, _price, _receiver, totLiquidatedAmount, receivingAmount);
             }
         }
+        
     }
 
+
+    function liquidate(uint _nftID, int amount, address _receiver, uint _toNftID) external onlyCore returns(int liquidatedAmount)  {
+        accrueInterest();
+        
+        int recAmountIN;
+        (liquidatedAmount, recAmountIN) = liquidateInternal(_nftID, amount, _toNftID);
+
+        if(_toNftID == 0){
+            if(recAmountIN < 0){
+                transferToUser(token0, payable(_receiver), uint(-recAmountIN));
+            }
+
+            if(recAmountIN > 0){
+                transferToUser(token1, payable(_receiver), uint(recAmountIN));
+            }
+        }
+        
+    }
+
+
+    function liquidateMulti(uint[] calldata _nftIDs, int[] calldata amounts, address _receiver, uint _toNftID) external onlyCore returns(int liquidatedAmountTotal)  {
+        accrueInterest();
+        
+        int liquidatedAmount;
+        int recAmountIN;
+        int recAmountINtotal;
+
+        for (uint i=0; i<_nftIDs.length; i++) {
+        
+            (liquidatedAmount, recAmountIN) = liquidateInternal(_nftIDs[i], amounts[i], _toNftID);
+
+            liquidatedAmountTotal = liquidatedAmountTotal + liquidatedAmount;
+            recAmountINtotal = recAmountINtotal + recAmountIN;
+        }
+
+
+        if(_toNftID == 0){
+            if(recAmountINtotal < 0){
+                transferToUser(token0, payable(_receiver), uint(-recAmountINtotal));
+            }
+
+            if(recAmountINtotal > 0){
+                transferToUser(token1, payable(_receiver), uint(recAmountINtotal));
+            }
+        }
+
+    }
+    
 }
-
-
