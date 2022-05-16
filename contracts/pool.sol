@@ -399,6 +399,10 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             emit InterestUpdate(interestRate0, interestRate1, _tm0.totalBorrow, _tm1.totalBorrow);
         }
     }
+
+    function transferFlashLoanProtocolFee(address _distributorAddress, address _token, uint256 _amount) external onlyCore {
+        transferToUser(_token, payable(_distributorAddress), _amount);
+    }
     
     function processFlashLoan(address _receiver, int _amount) external onlyCore {
         accrueInterest();
