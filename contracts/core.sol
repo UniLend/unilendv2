@@ -48,6 +48,7 @@ interface IUnilendV2Pool {
     function liquidateMulti(uint[] calldata _nftIDs, int[] calldata amount, address _receiver, uint _toNftID) external returns(int);
     
     function processFlashLoan(address _receiver, int _amount) external;
+    function transferFlashLoanProtocolFee(address _distributorAddress, address _token, uint256 _amount) external;
     function init(address _token0, address _token1, address _interestRate, uint8 _ltv, uint8 _lb, uint8 _rf) external;
     
     function getLTV() external view returns (uint);
@@ -387,27 +388,10 @@ contract UnilendV2Core is ReentrancyGuard {
         return true;
     }
     
-
-    /**
-    * @dev transfers to the user a specific amount from the reserve.
-    * @param _reserve the address of the reserve where the transfer is happening
-    * @param _user the address of the user receiving the transfer
-    * @param _amount the amount being transferred
-    **/
-    function transferToUser(address _reserve, address payable _user, uint256 _amount) internal {
-        require(_user != address(0), "UnilendV2: USER ZERO ADDRESS");
-        
-        IERC20(_reserve).safeTransfer(_user, _amount);
-    }
     
-    /**
-    * @dev transfers to the protocol fees of a flashloan to the fees collection address
-    * @param _token the address of the token being transferred
-    * @param _amount the amount being transferred
-    **/
-    function transferFlashLoanProtocolFeeInternal(address _token, uint256 _amount) internal {
+    function transferFlashLoanProtocolFeeInternal(address _pool, address _token, uint256 _amount) internal {
         if(distributorAddress != address(0)){
-            IERC20(_token).safeTransfer(distributorAddress, _amount);
+            IUnilendV2Pool(_pool).transferFlashLoanProtocolFee(distributorAddress, _token, _amount);
         }
     }
     
@@ -461,7 +445,7 @@ contract UnilendV2Core is ReentrancyGuard {
             "The actual balance of the protocol is inconsistent"
         );
         
-        transferFlashLoanProtocolFeeInternal(_reserve, protocolFee);
+        transferFlashLoanProtocolFeeInternal(_pool, _reserve, protocolFee);
 
         // solium-disable-next-line
         emit FlashLoan(_receiver, _reserve, _amount, amountFee, protocolFee, block.timestamp);
