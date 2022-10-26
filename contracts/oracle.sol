@@ -7,9 +7,34 @@ import "./lib/access/Ownable.sol";
 
 
 
+interface AggregatorV3Interface {
+  function decimals() external view returns (uint8);
 
-interface IChainlinkAggregator {
-  function latestAnswer() external view returns (int256);
+  function description() external view returns (string memory);
+
+  function version() external view returns (uint256);
+
+  function getRoundData(uint80 _roundId)
+    external
+    view
+    returns (
+      uint80 roundId,
+      int256 answer,
+      uint256 startedAt,
+      uint256 updatedAt,
+      uint80 answeredInRound
+    );
+
+  function latestRoundData()
+    external
+    view
+    returns (
+      uint80 roundId,
+      int256 answer,
+      uint256 startedAt,
+      uint256 updatedAt,
+      uint80 answeredInRound
+    );
 }
 
 
@@ -20,7 +45,7 @@ contract UnilendV2oracle is Ownable {
     
     address public WETH;
     
-    mapping(address => IChainlinkAggregator) private assetsOracles;
+    mapping(address => AggregatorV3Interface) private assetsOracles;
     
     event AssetOracleUpdated(address indexed asset, address indexed source);
     
@@ -35,15 +60,26 @@ contract UnilendV2oracle is Ownable {
         require(assets.length == sources.length, 'INCONSISTENT_PARAMS_LENGTH');
         
         for (uint256 i = 0; i < assets.length; i++) {
-            assetsOracles[assets[i]] = IChainlinkAggregator(sources[i]);
+            assetsOracles[assets[i]] = AggregatorV3Interface(sources[i]);
             emit AssetOracleUpdated(assets[i], sources[i]);
         }
     }
     
+    function getLatestPrice(AggregatorV3Interface priceFeed) public view returns (int) {
+        (
+            /*uint80 roundID*/,
+            int price,
+            /*uint startedAt*/,
+            /*uint timeStamp*/,
+            /*uint80 answeredInRound*/
+        ) = priceFeed.latestRoundData();
+        return price;
+    }
+    
     function getChainLinkAssetPrice(address asset) public view returns (int256 price) {
-        IChainlinkAggregator source = assetsOracles[asset];
+        AggregatorV3Interface source = assetsOracles[asset];
         if(address(source) != address(0)){
-            price = IChainlinkAggregator(asset).latestAnswer();
+            price = getLatestPrice(AggregatorV3Interface(asset));
         }
     }
     
