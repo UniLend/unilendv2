@@ -43,7 +43,7 @@ contract UnilendV2library {
     
     function calculateShare(uint _totalShares, uint _totalAmount, uint _amount) internal pure returns (uint){
         if(_totalShares == 0){
-            return MathEx.sqrt(_amount.mul( _amount ));
+            return MathEx.sqrt(_amount.mul( _amount )).sub(10**3);
         } else {
             return (_amount).mul( _totalShares ).div( _totalAmount );
         }
@@ -505,6 +505,9 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             uint tokenBalance0 = IERC20(token0).balanceOf(address(this));
             uint _totTokenBalance0 = tokenBalance0.add(_tm0.totalBorrow);
             ntokens0 = calculateShare(_tm0.totalLendShare, _totTokenBalance0.sub(uint(-amount)), uint(-amount));
+            if(_tm0.totalLendShare == 0){
+                _mintLPposition(0, 10**3, 0);
+            }
             require(ntokens0 > 0, 'Insufficient Liquidity Minted');
 
             emit Lend(token0, _nftID, uint(-amount), ntokens0);
@@ -516,6 +519,9 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             uint tokenBalance1 = IERC20(token1).balanceOf(address(this));
             uint _totTokenBalance1 = tokenBalance1.add(_tm1.totalBorrow);
             ntokens1 = calculateShare(_tm1.totalLendShare, _totTokenBalance1.sub(uint(amount)), uint(amount));
+            if(_tm1.totalLendShare == 0){
+                _mintLPposition(0, 0, 10**3);
+            }
             require(ntokens1 > 0, 'Insufficient Liquidity Minted');
 
             emit Lend(token1, _nftID, uint(amount), ntokens1);
@@ -642,6 +648,9 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             tM storage _tm0 = token0Data;
             
             uint ntokens0 = calculateShare(_tm0.totalBorrowShare, _tm0.totalBorrow, uint(-amount));
+            if(_tm0.totalBorrowShare == 0){
+                _mintBposition(0, 10**3, 0);
+            }
             require(ntokens0 > 0, 'Insufficient Borrow0 Liquidity Minted');
             
             _mintBposition(_nftID, ntokens0, 0);
@@ -660,6 +669,9 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             tM storage _tm1 = token1Data;
             
             uint ntokens1 = calculateShare(_tm1.totalBorrowShare, _tm1.totalBorrow, uint(amount));
+            if(_tm1.totalBorrowShare == 0){
+                _mintBposition(0, 0, 10**3);
+            }
             require(ntokens1 > 0, 'Insufficient Borrow1 Liquidity Minted');
             
             _mintBposition(_nftID, 0, ntokens1);
