@@ -496,7 +496,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
     // --------
     
     
-    function lend(uint _nftID, int amount) external onlyCore returns(uint) {
+    function lend(uint _nftID, int amount) external onlyCore returns(int mintedTokens) {
         uint ntokens0; uint ntokens1;
         
         if(amount < 0){
@@ -509,6 +509,8 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
                 _mintLPposition(0, 10**3, 0);
             }
             require(ntokens0 > 0, 'Insufficient Liquidity Minted');
+            
+            mintedTokens = -int(ntokens0);
 
             emit Lend(token0, _nftID, uint(-amount), ntokens0);
         }
@@ -523,13 +525,13 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
                 _mintLPposition(0, 0, 10**3);
             }
             require(ntokens1 > 0, 'Insufficient Liquidity Minted');
+            
+            mintedTokens = int(ntokens1);
 
             emit Lend(token1, _nftID, uint(amount), ntokens1);
         }
         
         _mintLPposition(_nftID, ntokens0, ntokens1);
-
-        return 0;
     }
     
     
