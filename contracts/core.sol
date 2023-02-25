@@ -157,8 +157,6 @@ contract UnilendV2Core is ReentrancyGuard {
         _;
     }
     
-    receive() payable external {}
-    
     /**
     * @dev returns the fee applied to a flashloan and the portion to redirect to the protocol, in basis points.
     **/
