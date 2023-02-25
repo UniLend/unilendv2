@@ -39,7 +39,7 @@ interface IUnilendV2Pool {
     function setInterestRateAddress(address _address) external;
     function accrueInterest() external;
 
-    function lend(uint _nftID, int amount) external returns(uint);
+    function lend(uint _nftID, int amount) external returns(int);
     function redeem(uint _nftID, int tok_amount, address _receiver) external returns(int);
     function redeemUnderlying(uint _nftID, int amount, address _receiver) external returns(int);
     function borrow(uint _nftID, int amount, address payable _recipient) external;
@@ -458,7 +458,7 @@ contract UnilendV2Core is ReentrancyGuard {
     * @param _pool the address of the pool
     * @param _amount the amount to be deposited
     **/
-    function lend(address _pool, int _amount) external onlyAmountNotZero(_amount) nonReentrant returns(uint mintedTokens) {
+    function lend(address _pool, int _amount) external onlyAmountNotZero(_amount) nonReentrant returns(int mintedTokens) {
         (address _token0, address _token1) = getPoolTokens(_pool);
         require(_token0 != address(0), 'UnilendV2: POOL NOT FOUND');
 
@@ -471,7 +471,7 @@ contract UnilendV2Core is ReentrancyGuard {
         mintedTokens = iLend(_pool, _reserve, _amount, _nftID);
     }
     
-    function iLend(address _pool, address _token, int _amount, uint _nftID) internal returns(uint mintedTokens) {
+    function iLend(address _pool, address _token, int _amount, uint _nftID) internal returns(int mintedTokens) {
         address _user = msg.sender;
         IUnilendV2Pool(_pool).accrueInterest();
         
