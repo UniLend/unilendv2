@@ -79,7 +79,7 @@ contract UnilendV2oracle is Ownable {
     function getChainLinkAssetPrice(address asset) public view returns (int256 price) {
         AggregatorV3Interface source = assetsOracles[asset];
         if(address(source) != address(0)){
-            price = getLatestPrice(AggregatorV3Interface(asset));
+            price = getLatestPrice(source);
         }
     }
     
