@@ -86,22 +86,33 @@ contract UnilendV2oracle is Ownable {
     
     function getAssetPrice(address token0, address token1, uint amount) public view returns (uint256 _price) {
         int256 price0; int256 price1;
+        uint8 decimals0; uint8 decimals1;
         
         if(token0 == WETH && token1 != WETH){
             price0 = 1 ether;
             price1 = getChainLinkAssetPrice(token1);
+
+            decimals0 = 18;
+            decimals1 = IERC20Metadata(token1).decimals();
         } 
         else if(token0 != WETH && token1 == WETH){
             price0 = getChainLinkAssetPrice(token0);
             price1 = 1 ether;
+
+            decimals0 = IERC20Metadata(token0).decimals();
+            decimals1 = 18;
         } 
         else {
             price0 = getChainLinkAssetPrice(token0);
             price1 = getChainLinkAssetPrice(token1);
+
+            decimals0 = IERC20Metadata(token0).decimals();
+            decimals1 = IERC20Metadata(token1).decimals();
         }
         
+
         if(price0 > 0 && price1 > 0){
-            _price = (amount.mul(uint256(price1))).div(uint256(price0));
+            _price = ( (amount.mul(10**decimals1).mul(uint256(price1))).div(uint256(price0)) ).div(10**decimals0);
         }
     }
     
