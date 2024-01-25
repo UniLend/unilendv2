@@ -84,7 +84,7 @@ contract UnilendV2oracle is Ownable {
     }
     
     
-    function getAssetPrice(address token0, address token1, uint amount) public view returns (uint256 _price) {
+    function getAssetPrice(address token1, address token0, uint amount) public view returns (uint256 _price) {
         int256 price0; int256 price1;
         uint8 decimals0; uint8 decimals1;
         
@@ -112,7 +112,7 @@ contract UnilendV2oracle is Ownable {
         
 
         if(price0 > 0 && price1 > 0){
-            _price = ( (amount.mul(10**decimals1).mul(uint256(price1))).div(uint256(price0)) ).div(10**decimals0);
+            _price = ( (amount.mul(10**decimals1).mul(uint256(price0))).div(uint256(price1)) ).div(10**decimals0);
         }
     }
     
