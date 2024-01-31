@@ -184,9 +184,13 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
     function getLB() external view returns (uint) { return lb; }
     function getRF() external view returns (uint) { return rf; }
     
-    function checkHealthFactorLtv(uint _nftID) internal view {
-        (uint256 _healthFactor0, uint256 _healthFactor1) = userHealthFactorLtv(_nftID);
+    function checkHealthFactorLtv0(uint _nftID) internal view {
+        (uint256 _healthFactor0, ) = userHealthFactorLtv(_nftID);
         require(_healthFactor0 > HEALTH_FACTOR_LIQUIDATION_THRESHOLD, "Low Ltv HealthFactor0");
+    }
+
+    function checkHealthFactorLtv1(uint _nftID) internal view {
+        ( , uint256 _healthFactor1) = userHealthFactorLtv(_nftID);
         require(_healthFactor1 > HEALTH_FACTOR_LIQUIDATION_THRESHOLD, "Low Ltv HealthFactor1");
     }
 
@@ -556,7 +560,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             _burnLPposition(_nftID, uint(-tok_amount), 0);
 
             // check if _healthFactorLtv > 1
-            checkHealthFactorLtv(_nftID);
+            checkHealthFactorLtv0(_nftID);
             
             transferToUser(token0, payable(_receiver), poolAmount);
 
@@ -579,7 +583,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             _burnLPposition(_nftID, 0, uint(tok_amount));
 
             // check if _healthFactorLtv > 1
-            checkHealthFactorLtv(_nftID);
+            checkHealthFactorLtv1(_nftID);
             
             transferToUser(token1, payable(_receiver), poolAmount);
 
@@ -608,7 +612,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             _burnLPposition(_nftID, tok_amount0, 0);
 
             // check if _healthFactorLtv > 1
-            checkHealthFactorLtv(_nftID);
+            checkHealthFactorLtv0(_nftID);
             
             transferToUser(token0, payable(_receiver), uint(-_amount));
             
@@ -631,7 +635,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             _burnLPposition(_nftID, 0, tok_amount1);
 
             // check if _healthFactorLtv > 1
-            checkHealthFactorLtv(_nftID);
+            checkHealthFactorLtv1(_nftID);
             
             transferToUser(token1, payable(_receiver), uint(_amount));
             
@@ -660,7 +664,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             _tm0.totalBorrow = _tm0.totalBorrow.add(uint(-amount));
 
             // check if _healthFactorLtv > 1
-            checkHealthFactorLtv(_nftID);
+            checkHealthFactorLtv0(_nftID);
             
             transferToUser(token0, payable(_recipient), uint(-amount));
 
@@ -681,7 +685,7 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
             _tm1.totalBorrow = _tm1.totalBorrow.add(uint(amount));
 
             // check if _healthFactorLtv > 1
-            checkHealthFactorLtv(_nftID);
+            checkHealthFactorLtv1(_nftID);
             
             transferToUser(token1, payable(_recipient), uint(amount));
 
