@@ -483,6 +483,10 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
         
         if(tok_amount0 > 0){
             tM storage _tm0 = token0Data;
+
+            if(tok_amount0 == type(uint).max){
+                tok_amount0 = _positionMt.token0borrowShare;
+            }
             
             _positionMt.token0borrowShare = _positionMt.token0borrowShare.sub(tok_amount0);
             _tm0.totalBorrowShare = _tm0.totalBorrowShare.sub(tok_amount0);
@@ -490,6 +494,10 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
         
         if(tok_amount1 > 0){
             tM storage _tm1 = token1Data;
+
+            if(tok_amount1 == type(uint).max){
+                tok_amount1 = _positionMt.token1borrowShare;
+            }
             
             _positionMt.token1borrowShare = _positionMt.token1borrowShare.sub(tok_amount1);
             _tm1.totalBorrowShare = _tm1.totalBorrowShare.sub(tok_amount1);
@@ -779,15 +787,17 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
                 if(_borrowBalance0 <= uint(-amount)){
                     procAmountIN = _borrowBalance0;
                     recAmountIN = _lendBalance1;
+
+                    _burnBposition(_nftID, type(uint).max, 0);
                 } 
                 else {
                     procAmountIN = uint(-amount);
                     recAmountIN = (_lendBalance1.mul( procAmountIN )).div(_borrowBalance0);
+
+                    uint amountToShare0 = getShareByValue( _tm0.totalBorrow, _tm0.totalBorrowShare, procAmountIN );
+                    _burnBposition(_nftID, amountToShare0, 0);
                 }
 
-
-                uint amountToShare0 = getShareByValue( _tm0.totalBorrow, _tm0.totalBorrowShare, procAmountIN );
-                _burnBposition(_nftID, amountToShare0, 0);
                 _tm0.totalBorrow = _tm0.totalBorrow.sub(procAmountIN); // remove borrow amount
 
                 
@@ -829,15 +839,17 @@ contract UnilendV2Pool is UnilendV2library, UnilendV2transfer {
                 if(_borrowBalance1 <= uint(amount)){
                     procAmountIN = _borrowBalance1;
                     recAmountIN = _lendBalance0;
+                    
+                    _burnBposition(_nftID, 0, type(uint).max);
                 } 
                 else {
                     procAmountIN = uint(amount);
                     recAmountIN = (_lendBalance0.mul( procAmountIN )).div(_borrowBalance1);
+
+                    uint amountToShare1 = getShareByValue( _tm1.totalBorrow, _tm1.totalBorrowShare, procAmountIN );
+                    _burnBposition(_nftID, 0, amountToShare1);
                 }
 
-
-                uint amountToShare1 = getShareByValue( _tm1.totalBorrow, _tm1.totalBorrowShare, procAmountIN );
-                _burnBposition(_nftID, 0, amountToShare1);
                 _tm1.totalBorrow = _tm1.totalBorrow.sub(procAmountIN); // remove borrow amount
 
                 
