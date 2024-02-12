@@ -25,14 +25,14 @@ module.exports = async function(deployer) {
     console.log("UnilendV2 InterestRateModel contract deployement done:", V2InterestRateModelContract.address)
 
 
-    // Deploy position contract
-    let weth = V2PoolContract.address
+    // Deploy oracle contract
+    let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
     await deployer.deploy(UnilendV2oracle, weth)
     const v2oracleContract = await UnilendV2oracle.deployed()
     console.log("UnilendV2 oracle contract deployement done:", v2oracleContract.address)
 
 
-    // Deploy oracle contract
+    // Deploy position contract
     await deployer.deploy(V2Position, V2CoreContract.address)
     const v2PositionContract = await V2Position.deployed()
     console.log("UnilendV2 position contract deployement done:", v2PositionContract.address)
